@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catatan Keuangan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #0f1020;
+    --bg-soft: #16172c;
+    --card: #1c1e38;
+    --card-hi: #232548;
+    --line: #35375e;
+    --ink: #f2f0ff;
+    --ink-dim: #a6a7c9;
+    --up: #6df0a4;
+    --up-glow: rgba(109,240,164,0.35);
+    --down: #ff6b8b;
+    --down-glow: rgba(255,107,139,0.35);
+    --zap: #ffe14d;
+    --violet: #b98cff;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 12% -10%, rgba(185,140,255,0.25), transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(109,240,164,0.15), transparent 40%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding: 20px 16px 60px;
+  }
+
+  .wrap{ max-width: 640px; margin: 0 auto; }
+
+  .icon{ width:14px; height:14px; flex-shrink:0; display:inline-block; vertical-align:-2px; }
+  .icon path, .icon circle, .icon line, .icon polyline{ vector-effect:non-scaling-stroke; }
+
+  /* ---------- HEADER ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 22px;
+  }
+  .brand{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: 22px;
+    letter-spacing:-0.02em;
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: linear-gradient(135deg, var(--up), var(--violet));
+    box-shadow: 0 0 14px var(--up-glow);
+  }
+  .tagline{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
+  .reset-btn{
+    background:none; border:1px solid var(--line); color:var(--ink-dim);
+    font-size:11px; padding:7px 12px; border-radius:100px; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .reset-btn:hover{ border-color: var(--down); color: var(--down); }
+
+  /* ---------- BALANCE HERO ---------- */
+  .hero{
+    background: linear-gradient(160deg, var(--card-hi), var(--card));
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 26px 24px 20px;
+    position: relative;
+    overflow:hidden;
+    margin-bottom: 16px;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; right:-40px; top:-40px;
+    width:160px; height:160px; border-radius:50%;
+    background: radial-gradient(circle, rgba(185,140,255,0.35), transparent 70%);
+    pointer-events:none;
+  }
+  .hero-label{
+    font-size:12px; color:var(--ink-dim); font-weight:600;
+    display:flex; align-items:center; gap:6px;
+  }
+  .balance{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: 40px;
+    letter-spacing:-0.02em;
+    margin:6px 0 16px;
+    transition: transform .25s ease;
+  }
+  .balance.pulse{ transform: scale(1.04); }
+
+  .mini-stats{
+    display:flex; gap:10px;
+  }
+  .mini-stat{
+    flex:1; background: rgba(255,255,255,0.03);
+    border:1px solid var(--line);
+    border-radius:14px; padding:10px 12px;
+  }
+  .mini-stat .lbl{ font-size:11px; color:var(--ink-dim); display:flex; align-items:center; gap:5px;}
+  .mini-stat .val{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; margin-top:3px;}
+  .mini-stat.in .val{ color:var(--up); }
+  .mini-stat.out .val{ color:var(--down); }
+
+  /* ---------- CHART ---------- */
+  .chart-card{
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius:24px;
+    padding: 18px 18px 8px;
+    margin-bottom:16px;
+  }
+  .chart-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom: 6px; padding: 0 4px;
+  }
+  .chart-title{
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:15px;
+    display:flex; align-items:center; gap:7px;
+  }
+  .chart-sub{ font-size:11px; color:var(--ink-dim); }
+  #chartSvg{ width:100%; height:150px; display:block; overflow:visible; }
+  .chart-empty{
+    text-align:center; color:var(--ink-dim); font-size:13px; padding: 40px 0 20px;
+  }
+
+  /* ---------- FORM ---------- */
+  .form-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:24px;
+    padding:18px;
+    margin-bottom:18px;
+  }
+  .toggle-group{
+    display:flex; background:var(--bg-soft); border-radius:100px; padding:4px; gap:4px;
+    margin-bottom:14px;
+  }
+  .toggle-btn{
+    flex:1; border:none; background:none; color:var(--ink-dim);
+    font-family:'Inter',sans-serif; font-weight:700; font-size:13px;
+    padding:10px 0; border-radius:100px; cursor:pointer;
+    transition: all .18s ease;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .toggle-btn.active.in{ background: var(--up); color:#08240f; box-shadow:0 0 18px var(--up-glow);}
+  .toggle-btn.active.out{ background: var(--down); color:#3a0512; box-shadow:0 0 18px var(--down-glow);}
+
+  .field{ margin-bottom:12px; }
+  .field label{
+    font-size:11px; color:var(--ink-dim); font-weight:600; display:block; margin-bottom:6px;
+  }
+  .field input, .field select{
+    width:100%; background:var(--bg-soft); border:1px solid var(--line);
+    color:var(--ink); border-radius:14px; padding:13px 14px; font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  .field input::placeholder{ color:#5c5e85; }
+  .field input:focus, .field select:focus{ outline:2px solid var(--violet); border-color:transparent; }
+
+  .row2{ display:flex; gap:10px; }
+  .row2 .field{ flex:1; }
+
+  .submit-btn{
+    width:100%; border:none; border-radius:16px; padding:15px 0;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px;
+    cursor:pointer; margin-top:4px; transition: transform .12s ease, filter .12s ease;
+    color:#0b0b16;
+  }
+  .submit-btn:active{ transform: scale(0.98); }
+  .submit-btn.in{ background: linear-gradient(135deg, var(--up), #a8ffce); }
+  .submit-btn.out{ background: linear-gradient(135deg, var(--down), #ffb0c2); }
+
+  /* ---------- HISTORY ---------- */
+  .history-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin: 6px 4px 10px;
+  }
+  .history-head h2{
+    font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600;
+  }
+  .history-count{ font-size:11px; color:var(--ink-dim); }
+
+  .entry{
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--line);
+    border-radius:18px; padding:13px 14px; margin-bottom:9px;
+    animation: slideIn .3s ease;
+  }
+  @keyframes slideIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .entry-icon{
+    width:38px; height:38px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .entry-icon .icon{ width:18px; height:18px; }
+  .entry-icon.in{ background: rgba(109,240,164,0.15); color:var(--up); }
+  .entry-icon.out{ background: rgba(255,107,139,0.15); color:var(--down); }
+
+  .entry-body{ flex:1; min-width:0; }
+  .entry-title{ font-size:14px; font-weight:600; }
+  .entry-meta{ font-size:11px; color:var(--ink-dim); margin-top:1px; }
+
+  .entry-amt{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px; white-space:nowrap; }
+  .entry-amt.in{ color:var(--up); }
+  .entry-amt.out{ color:var(--down); }
+
+  .del-btn{
+    background:none; border:none; color:var(--ink-dim); cursor:pointer;
+    padding:4px 2px; display:flex; align-items:center;
+  }
+  .del-btn .icon{ width:15px; height:15px; }
+  .del-btn:hover{ color:var(--down); }
+
+  .empty-state{
+    text-align:center; padding: 30px 10px; color:var(--ink-dim); font-size:13px;
+  }
+  .empty-state .em{ margin-bottom:8px; display:flex; justify-content:center; }
+  .empty-state .em .icon{ width:30px; height:30px; }
+
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background: var(--card-hi); border:1px solid var(--line);
+    padding:12px 20px; border-radius:100px; font-size:13px; font-weight:600;
+    opacity:0; transition: all .25s ease; pointer-events:none;
+    display:flex; align-items:center; gap:8px; z-index:50;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast .icon{ width:16px; height:16px; }
+
+  @media (max-width:420px){
+    .balance{ font-size:32px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="brand"><span class="dot"></span>Catatan Keuangan</div>
+      <div class="tagline">catetan cuan ngejob, no ribet no buku</div>
+    </div>
+    <button class="reset-btn" id="resetBtn">reset data</button>
+  </header>
+
+  <div class="hero">
+    <div class="hero-label">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><circle cx="16" cy="14.5" r="1.5"/></svg>
+      saldo sekarang
+    </div>
+    <div class="balance" id="balanceText">Rp 0</div>
+    <div class="mini-stats">
+      <div class="mini-stat in">
+        <div class="lbl">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          masuk
+        </div>
+        <div class="val" id="totalIn">Rp 0</div>
+      </div>
+      <div class="mini-stat out">
+        <div class="lbl">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+          keluar
+        </div>
+        <div class="val" id="totalOut">Rp 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <div class="chart-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+        grafik saldo
+      </div>
+      <div class="chart-sub" id="chartSub">belum ada transaksi</div>
+    </div>
+    <svg id="chartSvg" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="form-card">
+    <div class="toggle-group">
+      <button class="toggle-btn active in" id="btnTypeIn" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        masuk
+      </button>
+      <button class="toggle-btn out" id="btnTypeOut" type="button">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        keluar
+      </button>
+    </div>
+
+    <div class="field">
+      <label for="descInput">buat apa nih?</label>
+      <input type="text" id="descInput" placeholder="misal: bayaran desain logo, beli bensin...">
+    </div>
+
+    <div class="field">
+      <label for="amountInput">jumlah (Rp)</label>
+      <input type="number" id="amountInput" placeholder="50000" min="0" inputmode="numeric">
+    </div>
+
+    <button class="submit-btn in" id="submitBtn" type="button">+ catat cuan masuk</button>
+  </div>
+
+  <div class="history-head">
+    <h2>riwayat transaksi</h2>
+    <span class="history-count" id="histCount">0 catatan</span>
+  </div>
+
+  <div id="historyList"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'entries-list';
+  let entries = [];
+  let currentType = 'in';
+
+  const balanceText = document.getElementById('balanceText');
+  const totalInEl = document.getElementById('totalIn');
+  const totalOutEl = document.getElementById('totalOut');
+  const historyList = document.getElementById('historyList');
+  const histCount = document.getElementById('histCount');
+  const chartSvg = document.getElementById('chartSvg');
+  const chartSub = document.getElementById('chartSub');
+  const btnTypeIn = document.getElementById('btnTypeIn');
+  const btnTypeOut = document.getElementById('btnTypeOut');
+  const submitBtn = document.getElementById('submitBtn');
+  const descInput = document.getElementById('descInput');
+  const amountInput = document.getElementById('amountInput');
+  const toast = document.getElementById('toast');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // ---- SVG icon library (stroke-based, currentColor) ----
+  const ICONS = {
+    briefcase: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M2 13h20"/></svg>',
+    gift: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7"/><path d="M12 8c-1.5 0-3-1-3-2.5A2.5 2.5 0 0 1 11.5 3C13 3 14 5 12 8Z"/><path d="M12 8c1.5 0 3-1 3-2.5A2.5 2.5 0 0 0 12.5 3C11 3 10 5 12 8Z"/></svg>',
+    moped: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 18h6"/><path d="M4 14l3-6h4l2 4"/><path d="M13 8h3l3 4v4"/></svg>',
+    bowl: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 6 0 0 1-18 0Z"/><path d="M7 12c0-3 1-6 5-6s5 3 5 6"/></svg>',
+    tool: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2Z"/></svg>',
+    sparkle: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>',
+    receipt: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-2.5-1.5L14 21l-2.5-1.5L9 21l-2.5-1.5L4 21V3Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+    trash: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    warn: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    check: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    broom: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 14 10"/><path d="M13.5 6.5 17.5 2.5l2.5 2.5-4 4"/><path d="M9 16c-2-1-5 0-6 2 2 1 5 1 7-1"/><path d="M12.5 12.5c-1.5 0-3.5.5-4.5 2.5"/></svg>',
+    box: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>'
+  };
+
+  function fmtRp(n){
+    const sign = n < 0 ? '-' : '';
+    n = Math.abs(Math.round(n));
+    return sign + 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function showToast(msg, iconKey){
+    toast.innerHTML = (iconKey ? ICONS[iconKey] : '') + '<span>' + msg + '</span>';
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toast.classList.remove('show'), 2000);
+  }
+
+  function setType(type){
+    currentType = type;
+    if(type === 'in'){
+      btnTypeIn.classList.add('active');
+      btnTypeOut.classList.remove('active');
+      submitBtn.classList.remove('out');
+      submitBtn.classList.add('in');
+      submitBtn.textContent = '+ catat cuan masuk';
+    } else {
+      btnTypeOut.classList.add('active');
+      btnTypeIn.classList.remove('active');
+      submitBtn.classList.remove('in');
+      submitBtn.classList.add('out');
+      submitBtn.textContent = '+ catat duit keluar';
+    }
+  }
+  btnTypeIn.addEventListener('click', ()=> setType('in'));
+  btnTypeOut.addEventListener('click', ()=> setType('out'));
+
+  async function loadEntries(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      entries = res ? JSON.parse(res.value) : [];
+    }catch(e){
+      entries = [];
+    }
+    render();
+  }
+
+  async function saveEntries(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+    }catch(e){
+      console.error('gagal simpan', e);
+      showToast('gagal nyimpen data', 'warn');
+    }
+  }
+
+  function iconFor(type){
+    return type === 'in' ? ICONS.sparkle : ICONS.receipt;
+  }
+
+  function render(){
+    let totalIn = 0, totalOut = 0;
+    entries.forEach(e=>{
+      if(e.type === 'in') totalIn += e.amount; else totalOut += e.amount;
+    });
+    const balance = totalIn - totalOut;
+
+    balanceText.textContent = fmtRp(balance);
+    totalInEl.textContent = fmtRp(totalIn);
+    totalOutEl.textContent = fmtRp(totalOut);
+    histCount.textContent = entries.length + ' catatan';
+
+    renderHistory();
+    renderChart();
+  }
+
+  function renderHistory(){
+    if(entries.length === 0){
+      historyList.innerHTML = '<div class="empty-state"><div class="em">' + ICONS.box + '</div>belum ada catatan, yuk mulai catet transaksi pertama kamu!</div>';
+      return;
+    }
+    const sorted = [...entries].sort((a,b)=> b.ts - a.ts);
+    historyList.innerHTML = sorted.map(e=>{
+      const d = new Date(e.ts);
+      const dateStr = d.toLocaleDateString('id-ID', {day:'numeric', month:'short'}) + ' · ' + d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+      const icon = iconFor(e.type);
+      return `
+        <div class="entry">
+          <div class="entry-icon ${e.type}">${icon}</div>
+          <div class="entry-body">
+            <div class="entry-title">${escapeHtml(e.desc || (e.type==='in' ? 'Pemasukan' : 'Pengeluaran'))}</div>
+            <div class="entry-meta">${dateStr}</div>
+          </div>
+          <div class="entry-amt ${e.type}">${e.type==='in' ? '+' : '-'}${fmtRp(e.amount)}</div>
+          <button class="del-btn" data-id="${e.id}" title="hapus">${ICONS.trash}</button>
+        </div>
+      `;
+    }).join('');
+
+    historyList.querySelectorAll('.del-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-id');
+        entries = entries.filter(e=> String(e.id) !== id);
+        saveEntries();
+        render();
+        showToast('catatan dihapus', 'trash');
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderChart(){
+    const W = 600, H = 150, PAD = 10;
+    chartSvg.innerHTML = '';
+
+    if(entries.length === 0){
+      chartSub.textContent = 'belum ada transaksi';
+      chartSvg.innerHTML = `<text x="300" y="80" text-anchor="middle" fill="#5c5e85" font-size="13" font-family="Inter">mulai catat buat liat grafiknya</text>`;
+      return;
+    }
+
+    const sorted = [...entries].sort((a,b)=> a.ts - b.ts);
+    let running = 0;
+    const points = [{x:0, y:0}];
+    sorted.forEach((e,i)=>{
+      running += e.type === 'in' ? e.amount : -e.amount;
+      points.push({x:i+1, y:running});
+    });
+
+    const ys = points.map(p=>p.y);
+    let minY = Math.min(...ys, 0);
+    let maxY = Math.max(...ys, 0);
+    if(minY === maxY){ minY -= 1; maxY += 1; }
+    const rangeY = maxY - minY;
+
+    const stepX = points.length > 1 ? (W - PAD*2) / (points.length - 1) : 0;
+    function px(i){ return PAD + i * stepX; }
+    function py(y){ return H - PAD - ((y - minY) / rangeY) * (H - PAD*2); }
+
+    let d = `M ${px(0)} ${py(points[0].y)}`;
+    for(let i=1;i<points.length;i++){
+      d += ` L ${px(i)} ${py(points[i].y)}`;
+    }
+
+    const zeroY = py(0);
+    let areaD = d + ` L ${px(points.length-1)} ${zeroY} L ${px(0)} ${zeroY} Z`;
+
+    const lastY = points[points.length-1].y;
+    const lastType = sorted[sorted.length-1].type;
+    const lineColor = lastType === 'in' ? 'var(--up)' : (lastType === 'out' ? 'var(--down)' : 'var(--violet)');
+    const glowColor = lastType === 'in' ? 'rgba(109,240,164,0.25)' : 'rgba(255,107,139,0.22)';
+
+    const ns = 'http://www.w3.org/2000/svg';
+
+    const defs = document.createElementNS(ns, 'defs');
+    const grad = document.createElementNS(ns, 'linearGradient');
+    grad.setAttribute('id', 'areaGrad');
+    grad.setAttribute('x1','0'); grad.setAttribute('y1','0');
+    grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
+    grad.innerHTML = `<stop offset="0%" stop-color="${glowColor}"/><stop offset="100%" stop-color="transparent"/>`;
+    defs.appendChild(grad);
+    chartSvg.appendChild(defs);
+
+    // zero line
+    const zeroLine = document.createElementNS(ns,'line');
+    zeroLine.setAttribute('x1', 0); zeroLine.setAttribute('x2', W);
+    zeroLine.setAttribute('y1', zeroY); zeroLine.setAttribute('y2', zeroY);
+    zeroLine.setAttribute('stroke', '#35375e');
+    zeroLine.setAttribute('stroke-dasharray', '4 5');
+    zeroLine.setAttribute('stroke-width', '1');
+    chartSvg.appendChild(zeroLine);
+
+    const area = document.createElementNS(ns, 'path');
+    area.setAttribute('d', areaD);
+    area.setAttribute('fill', 'url(#areaGrad)');
+    chartSvg.appendChild(area);
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', lineColor);
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    chartSvg.appendChild(path);
+
+    // animate draw
+    try{
+      const length = path.getTotalLength();
+      path.style.strokeDasharray = length;
+      path.style.strokeDashoffset = length;
+      path.getBoundingClientRect();
+      path.style.transition = 'stroke-dashoffset .7s ease';
+      requestAnimationFrame(()=>{ path.style.strokeDashoffset = 0; });
+    }catch(e){}
+
+    // last point dot with glow
+    const cx = px(points.length-1), cy = py(lastY);
+    const glowCircle = document.createElementNS(ns,'circle');
+    glowCircle.setAttribute('cx', cx); glowCircle.setAttribute('cy', cy);
+    glowCircle.setAttribute('r', 10);
+    glowCircle.setAttribute('fill', lineColor);
+    glowCircle.setAttribute('opacity', '0.25');
+    chartSvg.appendChild(glowCircle);
+
+    const dot = document.createElementNS(ns,'circle');
+    dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
+    dot.setAttribute('r', 5);
+    dot.setAttribute('fill', lineColor);
+    dot.setAttribute('stroke', '#0f1020');
+    dot.setAttribute('stroke-width', '2');
+    chartSvg.appendChild(dot);
+
+    chartSub.textContent = lastType === 'in' ? 'lagi naik nih, gas terus!' : 'abis kepake, tetep semangat';
+  }
+
+  submitBtn.addEventListener('click', ()=>{
+    const desc = descInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+
+    if(!amount || amount <= 0){
+      showToast('isi jumlahnya dulu ya', 'warn');
+      amountInput.focus();
+      return;
+    }
+
+    entries.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      type: currentType,
+      desc,
+      amount,
+      ts: Date.now()
+    });
+
+    saveEntries();
+    descInput.value = '';
+    amountInput.value = '';
+
+    balanceText.classList.add('pulse');
+    setTimeout(()=> balanceText.classList.remove('pulse'), 250);
+
+    render();
+    showToast(currentType === 'in' ? 'cuan dicatat, mantap!' : 'dicatat, tetep hemat ya', 'check');
+  });
+
+  amountInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') submitBtn.click();
+  });
+
+  resetBtn.addEventListener('click', async ()=>{
+    if(entries.length === 0) return;
+    if(confirm('yakin mau hapus semua catatan? gak bisa dibalikin lho!')){
+      entries = [];
+      await saveEntries();
+      render();
+      showToast('semua data direset', 'broom');
+    }
+  });
+
+  loadEntries();
+})();
+</script>
+</body>
+</html>
